@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Croto Downloader</title>
+</head>
+
+<body>
+  <section class="top-section">
+    <label for="search-box">paste url:</label>
+    <input type="text" name="search-box" id="urlInput">
+    <button class="downlad-btn" id="downloadButton">Descargar</button>
+    <label>Berserker:</label>
+    <input type="checkbox" checked id="berserker">
+    <section class="download-queue">
+    </section>
+
+  </section>
+  <script src="downloadUI.js"></script>
+  <script>
+    var ipc = require('electron').ipcRenderer;
+    var clipboard = require('electron').clipboard;
+    const berserker = document.getElementById('berserker')
+    document.getElementById("downloadButton")
+      .addEventListener('click', () => {
+        const url = document.getElementById('urlInput').value
+        if (url.trim() != "") {
+          ipc.send('download', url)
+        }
+      })
+    //reanuda descargas pendientes
+    ipc.on('recover', (e, signal) => {
+      console.log('reanudando descargas sin terminar');
+      if (signal) ipc.send('recover', signal)
+    })
+    // agrega un item que representa la descarga  
+    ipc.on('added', (e, added) => {
+      let url = added.url
+      processes[url] = added
+      console.log(processes)
+      if (!document.getElementById('url-' + url)) {
+
+        const dlQue = document.getElementsByClassName('download-queue')[0]
+        dlQue.innerHTML += `<div class="download-item" id="url-${url}">
+          <progress value="" max="100"></progress>
+          <span name="percentage">pendiente..</span>
+          <span name="size"></span>
+          <span name="speed"></span>
+          <span name="eta"></span>
+          <button onclick="cancel('${url}')">Cancel</button>
+          </div>`
+      }
+    })
+    ipc.on('error', (e, error) => {
+      console.log(error);
+      alert('no se pudo iniciar la descarga revisa la ur: "' + error.url + '"')
+      changeButton(error)
+    })
+    //muestra progreso y estado de descarga
+    ipc.on('data', (e, data) => {
+      const proc = processes[data.url]
+      proc.status = data.status
+      proc.pid = data.pid
+      proc.benchIndex = data.benchIndex
+      console.log(data)
+      updateQueueItem(data)
+
+    })
+    ipc.on('end', (e, data) => {
+      console.log('ending', data)
+    })
+    ipc.on('completed', (e, proc) => {
+      console.log('se termino de descargar: ', proc);
+      updateQueueItem(proc)
+      changeButton(proc, false)
+    })
+    ipc.on('cancelled', (e, proc) => {
+      console.log('cancelando: ', proc)
+      changeButton(proc)
+    })
+    //maneja fallo (grave) de descarga
+    ipc.on('failed', (e, proc) => {
+      console.log('failed retrying', proc)
+      if (berserker.checked) { setTimeout(reload(proc.url), 5000) }
+      else changeButton(proc)
+    })
+
+    //pegado de portapapeles automatico con click derecho
+    const urlInput = document.getElementById('urlInput')
+    urlInput.addEventListener('mouseup', (e) => {
+      const clip = clipboard.readText()
+
+      if (e.button == 2) {
+        urlInput.value = clip
+      }
+
+    })
+  </script>
+</body>
+
+</html>

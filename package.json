@@ -1,0 +1,20 @@
+{
+  "name": "downloaditall",
+  "version": "0.1.0",
+  "description": "ui en electron para youtube-dl",
+  "main": "./source/main.js",
+  "scripts": {
+    "start": "electron ./source/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jose Rodriguez",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "electron": "^19.0.8"
+  },
+  "dependencies": {
+    "ffmpeg": "^0.0.4",
+    "tree-kill": "^1.2.2",
+    "youtube-dl-exec": "^2.1.2"
+  }
+}
